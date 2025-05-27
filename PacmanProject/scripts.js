@@ -4,77 +4,123 @@ document.addEventListener('DOMContentLoaded', () => {
     const width = 15;
     const initialPacmanIndex = 151;
     let pacmanIndex = initialPacmanIndex;
-    let pacmanRotation = 0; // variable global para ángulo
-    let isInvincible = false; // Variable para hacerlo invencible por un momento
-
-    // Variables de Puntaje y Vida
+    let pacmanRotation = 0;
+    let isInvincible = false;
     let score = 0;
     let lives = 3;
     const scoreDisplay = document.getElementById('score');
     const livesDisplay = document.getElementById('lives');
 
-    // CLASS DE FANTASMA
+    const originalDots = new Set(); 
+    cells.forEach((cell, i) => {
+        if (cell.classList.contains('dot')) originalDots.add(i);
+    });
+    const originalPellets = new Set();
+    cells.forEach((cell, i) => {
+        if (cell.classList.contains('power-pellet')) originalPellets.add(i);
+    });
+
     class Ghost {
         constructor(name, startIndex, className, speed = 500) {
             this.name = name;
             this.currentIndex = startIndex;
+            this.startIndex = startIndex;  // <-- agregado para resetear
             this.className = className;
             this.speed = speed;
+            this.isScared = false;
             this.timerId = null;
             this.directions = [-1, 1, -width, width];
         }
 
         draw() {
             cells[this.currentIndex].classList.add('ghost', this.className);
+            if (this.isScared) {
+                cells[this.currentIndex].classList.add('scared');
+            }
         }
 
         erase() {
-            cells[this.currentIndex].classList.remove('ghost', this.className);
+            cells[this.currentIndex].classList.remove('ghost', this.className, 'scared');
+        }
+
+        setScared(state) {
+            this.isScared = state;
+            if (state) {
+                cells[this.currentIndex].classList.add('scared');
+            } else {
+                cells[this.currentIndex].classList.remove('scared');
+            }
         }
 
         move() {
             const moveGhost = () => {
                 const possibleDirections = this.directions.filter(dir => {
-                    const nextIndex = this.currentIndex + dir;
+                    const next = this.currentIndex + dir;
                     return (
-                        !cells[nextIndex].classList.contains('wall') &&
-                        !cells[nextIndex].classList.contains('ghost')
+                        !cells[next].classList.contains('wall') &&
+                        !cells[next].classList.contains('ghost')
                     );
                 });
 
                 if (possibleDirections.length === 0) return;
 
-                // Control de dificultad: probabilidad de "inteligencia"
-                const smartMoveProbability = 0.6; // 60% de las veces irá hacia Pac-Man
-
                 let chosenDirection;
-                if (Math.random() < smartMoveProbability) {
-                    // Elegir dirección que acerque a Pac-Man
-                    let minDistance = Infinity;
+                if (Math.random() < 0.6) {
+                    // Movimiento inteligente
+                    let minDist = Infinity;
                     possibleDirections.forEach(dir => {
-                        const nextIndex = this.currentIndex + dir;
-                        const dx = (nextIndex % width) - (pacmanIndex % width);
-                        const dy = Math.floor(nextIndex / width) - Math.floor(pacmanIndex / width);
-                        const distance = Math.abs(dx) + Math.abs(dy);
-                        if (distance < minDistance) {
-                            minDistance = distance;
+                        const next = this.currentIndex + dir;
+                        const dx = (next % width) - (pacmanIndex % width);
+                        const dy = Math.floor(next / width) - Math.floor(pacmanIndex / width);
+                        const dist = Math.abs(dx) + Math.abs(dy);
+                        if (dist < minDist) {
+                            minDist = dist;
                             chosenDirection = dir;
                         }
                     });
                 } else {
-                    // Movimiento aleatorio
                     chosenDirection = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
                 }
 
                 const nextIndex = this.currentIndex + chosenDirection;
+
+               // Restaurar dot si aplicaba
+                if (originalDots.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                    cells[this.currentIndex].classList.add('dot');
+                }
+
+                // Restaurar power pellet si aplicaba
+                if (originalPellets.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                    cells[this.currentIndex].classList.add('power-pellet');
+                }
+
                 this.erase();
                 this.currentIndex = nextIndex;
+
+                // Si pisa dot, ocultarlo
+                if (cells[this.currentIndex].classList.contains('dot')) {
+                    cells[this.currentIndex].classList.remove('dot');
+                }
+
+                if (cells[this.currentIndex].classList.contains('power-pellet')) {
+                    cells[this.currentIndex].classList.remove('power-pellet');
+                }
+
                 this.draw();
 
-
-                // Verificar colisión solo si Pac-Man no es invencible
+                // Colisión con Pac-Man
                 if (this.currentIndex === pacmanIndex && !isInvincible) {
-                    loseLife();
+                    if (this.isScared) {
+                        // Fantasma comido
+                        this.erase();
+                        this.currentIndex = this.startIndex;
+                        this.draw();
+                        this.setScared(false);
+                        score += 50;
+                        scoreDisplay.textContent = score;
+                    } else {
+                        loseLife();
+                    }
                 }
             };
 
@@ -82,71 +128,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // CREAR FANTASMAS 
-    const blinky = new Ghost('blinky', 31, 'red', 900);
-    const pinky = new Ghost('pinky', 55, 'pink', 900);
-    const greenky = new Ghost('greenky', 87, 'green', 1300);
-    const yellownky = new Ghost('yellownky', 111, 'yellow', 1200);
-    const orangenky = new Ghost('orangenky', 159, 'orange', 1000);
-    const ghosts = [blinky, pinky, greenky, yellownky, orangenky];
+    const blinky = new Ghost('blinky', 80, 'red', 800);
+    const pinky = new Ghost('pinky', 81, 'pink', 800);
+    const blue = new Ghost('blue', 83, 'blue', 1000);
+    const orange = new Ghost('orange', 100, 'orange', 1000);
+    const ghosts = [blinky, pinky, blue, orange];
 
     ghosts.forEach(ghost => {
         ghost.draw();
         ghost.move();
     });
 
-    // Dibujar Pac-Man
     function drawPacMan() {
         cells.forEach(cell => cell.classList.remove('pacman'));
         cells[pacmanIndex].classList.add('pacman');
+
+        if (cells[pacmanIndex].classList.contains('dot')) {
+            cells[pacmanIndex].classList.remove('dot');
+            score += 5;
+            scoreDisplay.textContent = score;
+            checkWin();
+        }
+
+        if (cells[pacmanIndex].classList.contains('power-pellet')) {
+            cells[pacmanIndex].classList.remove('power-pellet');
+            score += 10;
+            scoreDisplay.textContent = score;
+
+            ghosts.forEach(g => g.setScared(true));
+
+            setTimeout(() => {
+                ghosts.forEach(g => g.setScared(false));
+            }, 10000);
+        }
     }
-
-    drawPacMan();
-
-    //Lógica de perder una vida
 
     function loseLife() {
         lives--;
         livesDisplay.textContent = lives;
 
         if (lives === 0) {
-            alert('¡Perdiste! Juego reiniciado.');
+            alert('¡Perdiste! Reiniciando...');
             location.reload();
         } else {
             alert(`Te atraparon. Vidas restantes: ${lives}`);
-            isInvincible = true; // <-- Activar ANTES de reaparecer
+            isInvincible = true;
             pacmanIndex = initialPacmanIndex;
             drawPacMan();
-
-            setTimeout(() => {
-                isInvincible = false;
-            }, 2000);
+            setTimeout(() => isInvincible = false, 2000);
         }
     }
-
-    // Funcion de ganar
 
     function checkWin() {
         const remainingDots = cells.some(cell => cell.classList.contains('dot'));
         if (!remainingDots) {
             setTimeout(() => {
-                alert(`¡Ganaste! Tu puntaje final es: ${score}`);
-                location.reload(); // o ir a una página de victoria
-            }, 100);
+                alert(`¡Ganaste! Puntaje final: ${score}`);
+                location.reload();
+            }, 200);
         }
     }
 
-    // Bloquear scroll con flechas
-    window.addEventListener("keydown", function (e) {
-        const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-        if (keys.includes(e.key)) {
+    // Bloquear scroll
+    window.addEventListener('keydown', e => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
             e.preventDefault();
         }
-    }, false);
+    });
 
-    //Movimiento Del Teclado
-    document.addEventListener('keydown', (e) => {
-        // Quitar clase y rotación de la celda vieja
+    document.addEventListener('keydown', e => {
         cells[pacmanIndex].classList.remove('pacman');
         cells[pacmanIndex].style.transform = '';
 
@@ -175,17 +225,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         drawPacMan();
 
-        // Comer punto
-        if (cells[pacmanIndex].classList.contains('dot')) {
-            cells[pacmanIndex].classList.remove('dot');
-            score += 5;
-            scoreDisplay.textContent = score;
-            checkWin();
+        if (cells[pacmanIndex].classList.contains('ghost') && !isInvincible) {
+            const ghostHere = ghosts.find(g => g.currentIndex === pacmanIndex);
+
+            if (ghostHere) {
+                if (ghostHere.isScared) {
+                    // Pacman se come al fantasma
+                    ghostHere.erase();
+                    ghostHere.currentIndex = ghostHere.startIndex;
+                    ghostHere.draw();
+                    ghostHere.setScared(false);
+                    score += 50;
+                    scoreDisplay.textContent = score;
+                } else {
+                    loseLife();
+                }
+            }
         }
 
-
-
-        // Rotar solo Pac-Man
+        // Rotación visual
         let angle = 0;
         switch (e.key) {
             case 'ArrowUp': angle = -90; break;
@@ -194,19 +252,23 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ArrowRight': angle = 0; break;
         }
 
-        // para que no pierda si es invencible
-
-        if (cells[pacmanIndex].classList.contains('ghost') && !isInvincible) {
-            loseLife();
-        }
-
-
-        // Rotación solo para el packman
-        if (
-            cells[pacmanIndex].classList.contains('pacman') &&
-            !cells[pacmanIndex].classList.contains('ghost')
-        ) {
+        if (cells[pacmanIndex].classList.contains('pacman')) {
             cells[pacmanIndex].style.transform = `rotate(${angle}deg)`;
         }
     });
+
+    drawPacMan();
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const introSound = document.getElementById('intro-sound');
+    function playIntroSound() {
+        introSound.play().catch((error) => {
+            console.log("no dejo");
+        });
+        document.removeEventListener('click', playIntroSound);
+        document.removeEventListener('keydown', playIntroSound);
+    }
+
+    document.addEventListener('click', playIntroSound);
+    document.addEventListener('keydown', playIntroSound);
 });
