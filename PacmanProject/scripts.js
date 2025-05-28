@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cells.forEach((cell, i) => {
         if (cell.classList.contains('dot')) originalDots.add(i);
     });
+    const eatenDots = new Set();
+    const eatenPellets = new Set();
+
     const originalPellets = new Set();
     cells.forEach((cell, i) => {
         if (cell.classList.contains('power-pellet')) originalPellets.add(i);
@@ -85,12 +88,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nextIndex = this.currentIndex + chosenDirection;
 
                // Restaurar dot si aplicaba
-                if (originalDots.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                /*if (originalDots.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                    cells[this.currentIndex].classList.add('dot');
+                }*/
+               if (
+                     originalDots.has(this.currentIndex) &&
+                    !eatenDots.has(this.currentIndex) &&
+                    !cells[this.currentIndex].classList.contains('pacman')
+                ) {
                     cells[this.currentIndex].classList.add('dot');
                 }
 
                 // Restaurar power pellet si aplicaba
-                if (originalPellets.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                /*if (originalPellets.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
+                    cells[this.currentIndex].classList.add('power-pellet');
+                }*/
+               if (
+                    originalPellets.has(this.currentIndex) &&
+                    !eatenPellets.has(this.currentIndex) &&
+                    !cells[this.currentIndex].classList.contains('pacman')
+                ) {
                     cells[this.currentIndex].classList.add('power-pellet');
                 }
 
@@ -145,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cells[pacmanIndex].classList.contains('dot')) {
             cells[pacmanIndex].classList.remove('dot');
+            eatenDots.add(pacmanIndex);
             score += 5;
             scoreDisplay.textContent = score;
             checkWin();
@@ -152,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cells[pacmanIndex].classList.contains('power-pellet')) {
             cells[pacmanIndex].classList.remove('power-pellet');
+            eatenPellets.add(pacmanIndex);
             score += 10;
             scoreDisplay.textContent = score;
 
