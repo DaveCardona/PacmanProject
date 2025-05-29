@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreDisplay = document.getElementById('score');
     const livesDisplay = document.getElementById('lives');
 
+
+    //POSICION ORIGINAL DE LOS DOTS Y PASTILLAS
+
     const originalDots = new Set(); 
     cells.forEach((cell, i) => {
         if (cell.classList.contains('dot')) originalDots.add(i);
@@ -22,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cells.forEach((cell, i) => {
         if (cell.classList.contains('power-pellet')) originalPellets.add(i);
     });
+
+
+    // CLASE FANTASMA
 
     class Ghost {
         constructor(name, startIndex, className, speed = 500) {
@@ -46,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
             cells[this.currentIndex].classList.remove('ghost', this.className, 'scared');
         }
 
+
+        // FUNCION DE ASUSTADO
+
         setScared(state) {
             this.isScared = state;
             if (state) {
@@ -54,6 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cells[this.currentIndex].classList.remove('scared');
             }
         }
+
+        //MOVIMIENTO DE FANTASMA
 
         move() {
             const moveGhost = () => {
@@ -87,10 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const nextIndex = this.currentIndex + chosenDirection;
 
-               // Restaurar dot si aplicaba
-                /*if (originalDots.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
-                    cells[this.currentIndex].classList.add('dot');
-                }*/
+                // RESTAURACIÓN DE LOS PUNTITOS Y PASTILLAS
+              
                if (
                      originalDots.has(this.currentIndex) &&
                     !eatenDots.has(this.currentIndex) &&
@@ -99,10 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cells[this.currentIndex].classList.add('dot');
                 }
 
-                // Restaurar power pellet si aplicaba
-                /*if (originalPellets.has(this.currentIndex) && !cells[this.currentIndex].classList.contains('pacman')) {
-                    cells[this.currentIndex].classList.add('power-pellet');
-                }*/
+                
                if (
                     originalPellets.has(this.currentIndex) &&
                     !eatenPellets.has(this.currentIndex) &&
@@ -145,6 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
+    // CREACIÓN DE FANTASMAS
     const blinky = new Ghost('blinky', 80, 'red', 800);
     const pinky = new Ghost('pinky', 81, 'pink', 800);
     const blue = new Ghost('blue', 83, 'blue', 1000);
@@ -155,6 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ghost.draw();
         ghost.move();
     });
+
+
+    // MANEJO DE PUNTAJES DE ACUERDO A LO QUE SE COME EL
 
     function drawPacMan() {
         cells.forEach(cell => cell.classList.remove('pacman'));
@@ -182,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // FUNCIÓN DE PERDIDA DE VIDAS
     function loseLife() {
         lives--;
         livesDisplay.textContent = lives;
@@ -197,6 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => isInvincible = false, 2000);
         }
     }
+
+
+    // FUNCIÓN QUE VERIFICA SI YA NO EXISTEN DOT
 
     function checkWin() {
         const remainingDots = cells.some(cell => cell.classList.contains('dot'));
@@ -214,6 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
         }
     });
+
+
+    // LECTURA DE LOS COMANDOS DE TECLADO
 
     document.addEventListener('keydown', e => {
         cells[pacmanIndex].classList.remove('pacman');
@@ -278,6 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     drawPacMan();
 });
+
+
+//REPRODUCCIÓN DEL AUDIO
 document.addEventListener('DOMContentLoaded', () => {
     const introSound = document.getElementById('intro-sound');
     function playIntroSound() {
